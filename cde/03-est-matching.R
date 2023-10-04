@@ -1,0 +1,280 @@
+# Program: 03-est-matching.R
+# Purpose: Estimate matching technology using nonlinear least squares.
+# 
+# Date Started: 2023-08-23
+# Date Revised: 2023-09-06
+library(tidyverse)
+library(tidyquant)
+library(broom)
+library(here)
+
+file_prg <- "03-est-matching"
+
+csub_blue <- rgb(0, 26, 112, maxColorValue = 255)
+csub_yellow <- rgb(245, 225, 164, maxColorValue = 255)
+
+mywidth <- 6
+golden <- 0.5*(1 + sqrt(5))
+myheight <- mywidth / golden
+  
+# Data on recession dates -------------------------------------------------------
+
+recess <- tq_get("USRECM", get = "economic.data", from = "1800-01-01")
+recess_dat <- recess %>% 
+  arrange(date) %>% 
+  mutate(same = 1 - (price == lag(price))) %>% 
+  # Remove first row, an NA, for cumulative sum
+  filter(date > min(recess$date)) %>% 
+  mutate(era = cumsum(same)) %>% 
+  # Filter only recessions
+  filter(price == 1)
+
+recess_dat <- recess_dat %>% 
+  group_by(era) %>% 
+  # Unncessary, but to be sure...
+  arrange(date) %>% 
+  filter(row_number() == 1 | row_number() == n())
+
+# Now reshape the data wide.
+# Each row will contain the start and end dates of a recession.
+recess_dat <- recess_dat %>% 
+  mutate(junk = row_number()) %>% 
+  mutate(begin_end = case_when(
+    junk == 1 ~ "begin",
+    junk == 2 ~ "end"
+  ))
+
+recess_wide <- recess_dat %>%
+  ungroup() %>% 
+  select(symbol, price, date, era, begin_end) %>% 
+  pivot_wider(names_from = begin_end, values_from = date)
+
+# Time-adjusted transition data -------------------------------------------
+
+dat <- read_csv(here("out", "dat_02-adjust-transition-rates.csv"))
+
+# Plot data ---------------------------------------------------------------
+
+# Define labels
+lab_tight <- "Ratio of vacancies to unemployment or labor-market tightness"
+lab_find <- "Probability of finding a job"
+lab_lfind <- "Log(Probability of finding a job)"
+
+dat <- dat %>% 
+  mutate(tight = vacancies / unemp)
+
+ggplot(data = dat) +
+  geom_point(mapping = aes(x = tight, y = find, color = date))
+
+recess_wide <- recess_wide %>% 
+  arrange(desc(begin))
+date_covid_recession_begin <- recess_wide[1,]$begin
+date_covid_recession_end <- recess_wide[1,]$end
+date_great_recession_begin <- recess_wide[2,]$begin
+date_great_recession_end <- recess_wide[2,]$end
+date_2001_recession_begin <- recess_wide[3,]$begin
+date_2001_recession_end <- recess_wide[3,]$end
+interval_covid_recession <- interval(date_covid_recession_begin, date_covid_recession_end)
+interval_great_recession <- interval(date_great_recession_begin, date_great_recession_end)
+interval_recess_2001 <- interval(date_2001_recession_begin, date_2001_recession_end)
+
+dat_plt <- dat %>% 
+  mutate(plt_groups_detailed = case_when(
+    date %within% interval_recess_2001 ~ "2001 Recession",    
+    date < date_great_recession_begin & (1 - date %within% interval_recess_2001) ~ "Before Great Recession",
+    date %within% interval_great_recession ~ "Great Recession",
+    date > date_great_recession_end & date < date_covid_recession_begin ~ "After Great Recession",
+    date %within% interval_covid_recession ~ "COVID Recess",
+    date > date_covid_recession_end ~ "After COVID Recess"
+  ),
+  plt_groups = case_when(
+    date < date_great_recession_begin ~ "Before Great Recession",
+    date >= date_great_recession_begin & date < date_covid_recession_begin ~ "After Great Recession",
+    date >= date_covid_recession_begin ~ "After COVID-19"
+  )) %>% 
+  group_by(plt_groups_detailed) %>% 
+  mutate(first_date = min(date),
+         first_date = year(first_date) + month(first_date) / 100,
+         plt_groups_detailed = factor(plt_groups_detailed))
+
+ggplot(data = dat_plt) +
+  geom_point(mapping = aes(x = tight, y = find, color = fct_reorder(plt_groups_detailed, first_date)), size = 5.0, alpha = 0.6) +
+  labs(x = lab_tight, y = lab_find, color = "Period") +
+  scale_color_viridis_d() +
+  theme_minimal()
+
+ggplot(data = dat_plt) +
+  geom_point(mapping = aes(x = tight, y = log(find), color = fct_reorder(plt_groups, first_date)), size = 6.5, alpha = 0.6) +
+  labs(x = lab_tight, y = lab_lfind, color = "Period") +
+  scale_color_viridis_d() +
+  theme_minimal()
+
+# Estimate nonlinear model ---------------------------------------------
+
+dat_reg <- dat %>%
+  mutate(
+    lfind = log(find),
+    after_great_recess = case_when(
+      (date >= date_great_recession_begin) &
+        (date < date_covid_recession_begin) ~ 1,
+      TRUE ~ 0
+    ),
+    after_covid = case_when(date >= date_covid_recession_begin ~ 1,
+                            TRUE ~ 0)
+  )
+
+# Get starting values
+par0 <- lm(lfind ~ log(1 + tight) + after_great_recess + after_covid, data = dat_reg)
+
+nl <- nls(lfind ~ a + log(tight) - log(1 + tight^g) / g + d1 * after_great_recess + d2 * after_covid, 
+    data = dat_reg,
+    list(a = par0$coefficients[["(Intercept)"]],
+         g = par0$coefficients[["log(1 + tight)"]],
+         d1 = par0$coefficients[["after_great_recess"]],
+         d2 = par0$coefficients[["after_covid"]]))
+
+dat_reg_plt <- augment(nl, data = dat_reg) 
+
+ggplot(data = dat_reg_plt) +
+  geom_point(mapping = aes(x = tight, y = lfind)) +
+  geom_point(mapping = aes(x = tight, y = .fitted), color = "red", alpha = 0.8)
+
+# Plot matching technology
+ggamma <- filter(tidy(nl), term == "g") %>% pull(estimate)
+a <- filter(tidy(nl), term == "a") %>% pull(estimate)
+d1 <- filter(tidy(nl), term == "d1") %>% pull(estimate)
+d2 <- filter(tidy(nl), term == "d2") %>% pull(estimate)
+
+# Save the estimate ggamma
+fout <- paste0("dat_", file_prg, ".rds")
+saveRDS(ggamma, file = here("out", fout))
+
+smear_factor <- sum(exp(dat_reg_plt$.resid)) / nobs(nl)
+# Compute the predicted levels
+dat_reg_plt <- dat_reg_plt %>% 
+  mutate(findhat_naive = exp(a) * tight / ((1 + tight^ggamma)^(1 / ggamma)) * exp(d1 * after_great_recess) * exp(d2 * after_covid),
+         findhat_smear = exp(a) * tight / ((1 + tight^ggamma)^(1 / ggamma)) * exp(d1 * after_great_recess) * exp(d2 * after_covid) * smear_factor)
+
+# The naive and smearing estimators are indistinguishable
+ggplot(data = dat_reg_plt) +
+  geom_point(mapping = aes(x = tight, y = find)) +
+  geom_point(mapping = aes(x = tight, y = findhat_naive), color = "red", alpha = 0.8) +
+  geom_point(mapping = aes(x = tight, y = findhat_smear), color = "blue", alpha = 0.8) 
+
+my_colors <- c("Data" = csub_blue, "Predicted" = "cyan")  
+my_alphas <- c("Data" = 1.0, "Predicted" = 0.45) 
+
+# Plot job-finding probability over time
+plt_find_date <- dat_reg_plt %>%
+  select(find, findhat_smear, date) %>% 
+  pivot_longer(cols = -date, names_to = "series", values_to = "lvl") %>% 
+  mutate(my_series = case_when(
+    series == "find" ~ "Data",
+    series == "findhat_smear" ~ "Predicted"
+  ))
+
+chart_begin <- min(plt_find_date$date)
+chart_end <- max(plt_find_date$date)
+ggplot(data = plt_find_date) +
+  geom_rect(
+    data = filter(recess_wide,
+                  begin >= chart_begin,
+                  begin <= chart_end),
+    mapping = aes(
+      xmin = begin,
+      xmax = end,
+      ymin = -Inf,
+      ymax = Inf
+    ),
+    fill = csub_blue,
+    alpha = 0.2
+  ) +      
+  geom_line(mapping = aes(x = date, y = lvl, color = my_series, linetype = my_series), linewidth = 1.75) +
+  scale_color_manual(values = my_colors) +  
+  labs(x = "", y = lab_find, color = "", linetype = "") + 
+  theme_minimal()  
+
+fout <- paste0("fig_", file_prg, "_estimated-find.pdf")
+ggsave(here("out", fout), heigh = myheight, width = mywidth)
+
+# Level of job-finding probability
+plt_find <- dat_reg_plt %>%
+  select(find, findhat_smear, tight) %>% 
+  pivot_longer(cols = -tight, names_to = "series", values_to = "lvl") %>% 
+  mutate(my_series = case_when(
+    series == "find" ~ "Data",
+    series == "findhat_smear" ~ "Predicted"
+  ))
+
+ggplot(data = plt_find) +
+  geom_point(mapping = aes(x = tight, y = lvl, color = my_series, alpha = my_series), size = 3.75) +
+  scale_color_manual(values = my_colors) +  
+  scale_alpha_manual(values = my_alphas) +
+  labs(x = lab_tight, y = lab_find, color = "") + 
+  guides(fill = "none", alpha = "none") +  
+  theme_minimal()
+
+fout <- paste0("fig_", file_prg, "_tightness-vs-find.pdf")
+ggsave(here("out", fout), heigh = myheight, width = mywidth)
+
+# Log of job-finding probability
+plt_lfind <- dat_reg_plt %>%
+  select(lfind, .fitted, tight) %>% 
+  pivot_longer(cols = all_of(c("lfind", ".fitted")), names_to = "series", values_to = "lvl") %>% 
+  mutate(my_series = case_when(
+    series == "lfind" ~ "Data",
+    series == ".fitted" ~ "Predicted"
+  ))
+  
+ggplot(data = plt_lfind) +
+  geom_point(mapping = aes(x = tight, y = lvl, color = my_series, alpha = my_series), size = 3.75) +
+  scale_color_manual(values = my_colors) +  
+  scale_alpha_manual(values = my_alphas) +
+  labs(x = lab_tight, y = lab_lfind, color = "") + 
+  guides(fill = "none", alpha = "none") +  
+  theme_minimal()
+  
+fout <- paste0("fig_", file_prg, "_tightness-vs-lfind.pdf")
+ggsave(here("out", fout), heigh = myheight, width = mywidth)
+
+# Plot bound --------------------------------------------------------------
+
+dat_reg_plt <- dat_reg_plt %>% 
+  mutate(eta_m_u = tight^ggamma / (1 + tight^ggamma),
+         bnd1 = 1 / eta_m_u,
+         bnd2 = 1 / (1 - eta_m_u),
+         bnd = pmax(bnd1, bnd2),
+         my_label = case_when(
+           near(bnd, max(bnd)) ~ paste0("Greatest influence\nbounded\nby ", round(max(dat_reg_plt$bnd), 2)),
+           TRUE ~ ""
+         ))
+
+ggplot(data = dat_reg_plt) +
+  geom_line(mapping = aes(x = date, y = bnd)) +
+  geom_line(mapping = aes(x = date, y = bnd1)) +
+  geom_line(mapping = aes(x = date, y = bnd2)) 
+
+chart_begin <- min(dat_reg_plt$date)
+chart_end <- max(dat_reg_plt$date)
+ggplot(data = dat_reg_plt) +
+  geom_rect(
+    data = filter(recess_wide,
+                  begin >= chart_begin,
+                  begin <= chart_end),
+    mapping = aes(
+      xmin = begin,
+      xmax = end,
+      ymin = -Inf,
+      ymax = Inf
+    ),
+    fill = csub_blue,
+    alpha = 0.2
+  ) +      
+  geom_line(mapping = aes(x = date, y = bnd), linewidth = 1.75, color = csub_blue) +
+  geom_text_repel(mapping = aes(x = date, y = bnd, label = my_label), nudge_y = -0.05, nudge_x = 2000, max.overlaps = Inf) +
+  labs(x = "", y = "Bound") + 
+  xlim(min(dat_reg_plt$date), max(dat_reg_plt$date)) +
+  theme_minimal()  
+
+fout <- paste0("fig_", file_prg, "_bound.pdf")
+ggsave(here("out", fout), heigh = myheight, width = mywidth)
