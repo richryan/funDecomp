@@ -149,6 +149,11 @@ d2 <- filter(tidy(nl), term == "d2") %>% pull(estimate)
 fout <- paste0("dat_", file_prg, ".rds")
 saveRDS(ggamma, file = here("out", fout))
 
+file_latex <- file(here("out", paste0("tex_", file_prg, ".tex")))
+ggamma_latex <- round(ggamma, digits = 3)
+writeLines(paste0("\\newcommand{\\estgamma}{", ggamma_latex, "}"), file_latex)
+close(file_latex)
+
 smear_factor <- sum(exp(dat_reg_plt$.resid)) / nobs(nl)
 # Compute the predicted levels
 dat_reg_plt <- dat_reg_plt %>% 
