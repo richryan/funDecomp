@@ -619,11 +619,11 @@ dat_eqm <- tibble(
 ) %>% 
   mutate(id = row_number(),
          mylabel_job_creation = case_when(
-           id == 25 ~ "Job creation",
+           id == 25 ~ "Job creation by firms",
            TRUE ~ ""
            ),
          mylabel_wage_curve = case_when(
-           id == 8000 ~ "Wage curve",
+           id == 8000 ~ "Job creation by workers",
            TRUE ~ ""
          ),
          mylabel_wage_hi_cl = case_when(

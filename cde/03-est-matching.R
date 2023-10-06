@@ -243,12 +243,15 @@ dat_reg_plt <- dat_reg_plt %>%
   mutate(eta_m_u = tight^ggamma / (1 + tight^ggamma),
          bnd1 = 1 / eta_m_u,
          bnd2 = 1 / (1 - eta_m_u),
-         bnd = pmax(bnd1, bnd2),
-         my_label = case_when(
-           near(bnd, max(bnd)) ~ paste0("Greatest influence\nbounded\nby ", round(max(dat_reg_plt$bnd), 2)),
-           TRUE ~ ""
-         ))
+         bnd = pmax(bnd1, bnd2))
 
+dat_reg_plt_label <- dat_reg_plt %>% 
+  filter(near(bnd, max(bnd)) | near(bnd, min(bnd))) %>% 
+  mutate(my_label = case_when(
+           near(bnd, max(bnd)) ~ paste0("Greatest influence\nbounded\nby ", round(max(dat_reg_plt$bnd), 2)),
+           near(bnd, min(bnd)) ~ paste(round(bnd, digits = 3))
+         ))
+  
 ggplot(data = dat_reg_plt) +
   geom_line(mapping = aes(x = date, y = bnd)) +
   geom_line(mapping = aes(x = date, y = bnd1)) +
@@ -271,10 +274,14 @@ ggplot(data = dat_reg_plt) +
     alpha = 0.2
   ) +      
   geom_line(mapping = aes(x = date, y = bnd), linewidth = 1.75, color = csub_blue) +
-  geom_text_repel(mapping = aes(x = date, y = bnd, label = my_label), nudge_y = -0.05, nudge_x = 2000, max.overlaps = Inf) +
+  geom_text_repel(data = dat_reg_plt_label,
+                  mapping = aes(x = date, y = bnd, label = my_label), nudge_y = c(-0.05, 0), nudge_x = c(2000, -1000), max.overlaps = Inf) +
   labs(x = "", y = "Bound") + 
   xlim(min(dat_reg_plt$date), max(dat_reg_plt$date)) +
   theme_minimal()  
 
 fout <- paste0("fig_", file_prg, "_bound.pdf")
 ggsave(here("out", fout), heigh = myheight, width = mywidth)
+
+ggplot(data = dat_reg_plt) +
+  geom_point(mapping = aes(x = tight, y = bnd))
