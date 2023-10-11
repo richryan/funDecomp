@@ -632,10 +632,11 @@ dat_eqm <- tibble(
          ))
 
 eqm_wages_size <- 1.1
+w_eqm <- y - bbeta * s * ct_baseline - (r + s) * c_baseline / compute_fill(ttheta = target_tight, m0 = match_efficiency, ggamma = ggamma) - bbeta * (r + s) * ch_baseline
 ggplot(data = dat_eqm) +
-  geom_line(mapping = aes(x = ttheta, y = job_creation), color = "black", size = eqm_wages_size) +
-  geom_line(mapping = aes(x = ttheta, y = wage_curve_cl), color = csub_gray, size = eqm_wages_size, linetype = "dashed") +
-  geom_line(mapping = aes(x = ttheta, y = wage_curve_baseline), color = csub_blue, size = eqm_wages_size) +
+  geom_line(mapping = aes(x = ttheta, y = job_creation), color = "black", linewidth = eqm_wages_size) +
+  geom_line(mapping = aes(x = ttheta, y = wage_curve_cl), color = csub_gray, linewidth = eqm_wages_size, linetype = "dashed") +
+  geom_line(mapping = aes(x = ttheta, y = wage_curve_baseline), color = csub_blue, linewidth = eqm_wages_size) +
   geom_text_repel(mapping = aes(x = ttheta, y = job_creation, label = mylabel_job_creation),
                   max.overlaps = Inf) +
   geom_text_repel(mapping = aes(x = ttheta, y = wage_curve_baseline, label = mylabel_wage_curve),
@@ -644,8 +645,10 @@ ggplot(data = dat_eqm) +
                   max.overlaps = Inf) +
   geom_vline(xintercept = target_tight, 
              linetype = "dotted") +
-  geom_hline(yintercept = y - bbeta * s * ct_baseline - (r + s) * c_baseline / compute_fill(ttheta = target_tight, m0 = match_efficiency, ggamma = ggamma) - bbeta * (r + s) * ch_baseline,
+  geom_hline(yintercept = w_eqm,
              linetype = "dotted") +
+  geom_text(mapping = aes(x = target_tight, y = min(wage_curve_baseline), label = paste0(target_tight)), nudge_y = -0.05) + 
+  geom_text(mapping = aes(x = min(ttheta), y = w_eqm, label = paste0(round(w_eqm, 3))), nudge_y = 0) +   
   theme_minimal() +
   labs(x = expression(paste(plain('Labor-market tightness'), ", ",  theta)), 
        y = expression(paste(plain('Equilibrium wages,'), " ", italic('w')))) 
