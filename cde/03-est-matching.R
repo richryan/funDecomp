@@ -1,8 +1,10 @@
 # Program: 03-est-matching.R
 # Purpose: Estimate matching technology using nonlinear least squares.
 # 
+# Plot implied bound for Upsilon.
+# 
 # Date Started: 2023-08-23
-# Date Revised: 2023-09-06
+# Date Revised: 2023-12-04
 library(tidyverse)
 library(tidyquant)
 library(ggrepel)
@@ -249,11 +251,21 @@ ggsave(here("out", fout), heigh = myheight, width = mywidth)
 
 # Plot bound --------------------------------------------------------------
 
+ggamma_hi <- 1.27
+
+compute_eta_mu_u <- function(tight, ggamma) {
+  tight^ggamma / (1 + tight^ggamma)
+}
+
 dat_reg_plt <- dat_reg_plt %>% 
-  mutate(eta_m_u = tight^ggamma / (1 + tight^ggamma),
+  mutate(eta_m_u = compute_eta_mu_u(tight = tight, ggamma = ggamma), # tight^ggamma / (1 + tight^ggamma),
+         eta_m_u_hi <- compute_eta_mu_u(tight = tight, ggamma = ggamma_hi),
          bnd1 = 1 / eta_m_u,
+         bnd1_hi = 1 / eta_m_u_hi,
          bnd2 = 1 / (1 - eta_m_u),
-         bnd = pmax(bnd1, bnd2))
+         bnd2_hi = 1 / (1 - eta_m_u_hi),
+         bnd = pmax(bnd1, bnd2),
+         bnd_hi = pmax(bnd1_hi, bnd2_hi))
 
 dat_reg_plt_label <- dat_reg_plt %>% 
   filter(near(bnd, max(bnd)) | near(bnd, min(bnd))) %>% 
@@ -267,6 +279,7 @@ ggplot(data = dat_reg_plt) +
   geom_line(mapping = aes(x = date, y = bnd1)) +
   geom_line(mapping = aes(x = date, y = bnd2)) 
 
+# Bound for Upsilon using estimated elasticity
 chart_begin <- min(dat_reg_plt$date)
 chart_end <- max(dat_reg_plt$date)
 ggplot(data = dat_reg_plt) +
@@ -295,6 +308,53 @@ writeLines(paste0("\\newcommand{\\bndlo}{", round(min(dat_reg_plt_label$bnd), di
 
 fout <- paste0("fig_", file_prg, "_bound.pdf")
 ggsave(here("out", fout), heigh = myheight, width = mywidth)
+
+# Bound for Upsilon using estimated elasticity and value found in literature
+
+dat_reg_plt_label_hi <- dat_reg_plt %>% 
+  filter(near(bnd_hi, max(bnd_hi)) | near(bnd, min(bnd))) %>% 
+  mutate(my_label = case_when(
+           near(bnd_hi, max(bnd_hi)) ~ paste0("Bound using previous value\nin the literature"),
+           near(bnd, min(bnd)) ~ paste("Bound using estimate\nfrom data")
+         ),
+         my_label_y = case_when(
+           near(bnd_hi, max(bnd_hi)) ~ bnd_hi,
+           date == ymd("2010-01-01") ~ bnd
+         ),
+         my_label_x = case_when(
+           near(bnd_hi, max(bnd_hi)) ~ date,
+           TRUE ~ ymd("2010-01-01")
+           ))
+
+ggplot(data = dat_reg_plt) +
+  geom_rect(
+    data = filter(recess_wide,
+                  begin >= chart_begin,
+                  begin <= chart_end),
+    mapping = aes(
+      xmin = begin,
+      xmax = end,
+      ymin = -Inf,
+      ymax = Inf
+    ),
+    fill = csub_blue,
+    alpha = 0.2
+  ) +      
+  geom_line(mapping = aes(x = date, y = bnd), linewidth = 1.75, color = csub_blue) +
+  geom_line(mapping = aes(x = date, y = bnd_hi), linewidth = 1.75, color = "cyan") +  
+  geom_text_repel(data = dat_reg_plt_label_hi,
+                  mapping = aes(x = my_label_x, y = my_label_y, label = my_label), nudge_y = c(-2, 2), nudge_x = c(2000, -1000), max.overlaps = Inf) +
+  labs(x = "", y = "Bound") +
+  xlim(min(dat_reg_plt$date), max(dat_reg_plt$date)) +
+  theme_minimal()  
+
+writeLines(paste0("\\newcommand{\\bndhihi}{", round(max(dat_reg_plt_label$bnd_hi), digits = 3), "}"), con = CON)
+writeLines(paste0("\\newcommand{\\bndhilo}{", round(min(dat_reg_plt_label$bnd_hi), digits = 3), "}"), con = CON)
+
+fout <- paste0("fig_", file_prg, "_bound-hi.pdf")
+ggsave(here("out", fout), heigh = myheight, width = mywidth)
+
+# Elasticity over the business cycle
 
 dat_reg_plt_eta_m_u <- dat_reg_plt %>% 
   filter(near(eta_m_u, max(eta_m_u)) | near(eta_m_u, min(eta_m_u))) %>% 
