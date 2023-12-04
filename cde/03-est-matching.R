@@ -319,11 +319,11 @@ dat_reg_plt_label_hi <- dat_reg_plt %>%
          ),
          my_label_y = case_when(
            near(bnd_hi, max(bnd_hi)) ~ bnd_hi,
-           date == ymd("2010-01-01") ~ bnd
+           near(bnd, min(bnd)) ~ bnd
          ),
          my_label_x = case_when(
            near(bnd_hi, max(bnd_hi)) ~ date,
-           TRUE ~ ymd("2010-01-01")
+           near(bnd, min(bnd)) ~ date
            ))
 
 ggplot(data = dat_reg_plt) +
