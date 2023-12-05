@@ -253,6 +253,8 @@ ggsave(here("out", fout), heigh = myheight, width = mywidth)
 
 ggamma_hi <- 1.27
 
+writeLines(paste0("\\newcommand{\\gammahi}{", round(ggamma_hi, digits = 3), "}"), con = CON)
+
 compute_eta_mu_u <- function(tight, ggamma) {
   tight^ggamma / (1 + tight^ggamma)
 }
@@ -398,8 +400,6 @@ ggsave(here("out", fout), heigh = myheight, width = mywidth)
 
 # Plot of the bound against labor-market tightness ------------------------
 
-# paste0("Bound computed using ", expression(gamma), "used in the literature"),
-# "Bound used here"
 dat_reg_plt_label_bnd <- tribble(
   ~my_x, ~my_y, ~my_lab, ~repel,
     0.5,  compute_bnd(compute_eta_mu_u(0.5, ggamma = ggamma_hi), ggamma = ggamma_hi), paste("gamma == ", round(ggamma_hi, 2)), TRUE,
@@ -411,6 +411,7 @@ dat_reg_plt_label_bnd <- tribble(
 ggplot(data = dat_reg_plt) +
   geom_line(mapping = aes(x = tight, y = bnd), color = csub_blue, linewidth = 1.2) +
   geom_line(mapping = aes(x = tight, y = bnd_hi), color = "cyan", linewidth = 1.2) +
+  geom_hline(yintercept = 2.0, color = "black") +
   geom_text_repel(data = filter(dat_reg_plt_label_bnd, repel == TRUE), 
                   mapping = aes(x = my_x, y = my_y, label = my_lab),
                   nudge_x = c(0.2, -0.01), nudge_y = c(2, 2), max.overlaps = Inf, parse = TRUE) +
