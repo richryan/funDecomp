@@ -249,7 +249,7 @@ ggplot(data = plt_lfind) +
 fout <- paste0("fig_", file_prg, "_tightness-vs-lfind.pdf")
 ggsave(here("out", fout), heigh = myheight, width = mywidth)
 
-# Plot bound --------------------------------------------------------------
+# Plot bounds over time --------------------------------------------------------------
 
 ggamma_hi <- 1.27
 
@@ -257,15 +257,19 @@ compute_eta_mu_u <- function(tight, ggamma) {
   tight^ggamma / (1 + tight^ggamma)
 }
 
+compute_bnd <- function(eta_m_u, ggamma) {
+  bnd1 <- 1 / eta_m_u
+  bnd2 <- 1 / (1 - eta_m_u)
+  pmax(bnd1, bnd2)
+}
+
 dat_reg_plt <- dat_reg_plt %>% 
   mutate(eta_m_u = compute_eta_mu_u(tight = tight, ggamma = ggamma), # tight^ggamma / (1 + tight^ggamma),
          eta_m_u_hi <- compute_eta_mu_u(tight = tight, ggamma = ggamma_hi),
+         bnd = compute_bnd(eta_m_u, ggamma = ggamma),
          bnd1 = 1 / eta_m_u,
-         bnd1_hi = 1 / eta_m_u_hi,
          bnd2 = 1 / (1 - eta_m_u),
-         bnd2_hi = 1 / (1 - eta_m_u_hi),
-         bnd = pmax(bnd1, bnd2),
-         bnd_hi = pmax(bnd1_hi, bnd2_hi))
+         bnd_hi = compute_bnd(eta_m_u_hi, ggamma = ggamma_hi))
 
 dat_reg_plt_label <- dat_reg_plt %>% 
   filter(near(bnd, max(bnd)) | near(bnd, min(bnd))) %>% 
@@ -313,8 +317,8 @@ ggsave(here("out", fout), heigh = myheight, width = mywidth)
 
 dat_reg_plt_label_hi <- dat_reg_plt %>% 
   mutate(my_label = case_when(
-          date == ymd("2010-01-01") ~ paste0("Bound using previous value\nin the literature"),
-          date == ymd("2011-01-01") ~ paste("Bound using estimate\nfrom data")
+          date == ymd("2010-01-01") ~ paste0("Bound computed using previous value\nin the literature"),
+          date == ymd("2011-01-01") ~ paste("Bound computed using estimate\nfrom time-adjusted data")
          ),
          my_label_y = case_when(
            date == ymd("2010-01-01") ~ round(bnd_hi, digits = 2),
@@ -391,7 +395,33 @@ writeLines(paste0("\\newcommand{\\etamulo}{", round(min(dat_reg_plt_eta_m_u$eta_
 fout <- paste0("fig_", file_prg, "_elasticity-matching.pdf")
 ggsave(here("out", fout), heigh = myheight, width = mywidth)
 
+
+# Plot of the bound against labor-market tightness ------------------------
+
+# paste0("Bound computed using ", expression(gamma), "used in the literature"),
+# "Bound used here"
+dat_reg_plt_label_bnd <- tribble(
+  ~my_x, ~my_y, ~my_lab, ~repel,
+    0.5,  compute_bnd(compute_eta_mu_u(0.5, ggamma = ggamma_hi), ggamma = ggamma_hi), paste("gamma == ", round(ggamma_hi, 2)), TRUE,
+    0.5,  compute_bnd(compute_eta_mu_u(0.5, ggamma = ggamma_hi), ggamma = ggamma_hi) + 0.75, "Bound computed using value\nfrom the literature,", FALSE,
+    1.75, compute_bnd(compute_eta_mu_u(1.75, ggamma = ggamma), ggamma = ggamma), paste("hat(gamma)", "==", round(ggamma, 2)), TRUE,
+    1.75, compute_bnd(compute_eta_mu_u(1.75, ggamma = ggamma), ggamma = ggamma) + 0.75, "Bound computed using estimate\nfrom time-adjusted JOLTS data,", FALSE
+)
+  
 ggplot(data = dat_reg_plt) +
-  geom_point(mapping = aes(x = tight, y = bnd)) 
+  geom_line(mapping = aes(x = tight, y = bnd), color = csub_blue, linewidth = 1.2) +
+  geom_line(mapping = aes(x = tight, y = bnd_hi), color = "cyan", linewidth = 1.2) +
+  geom_text_repel(data = filter(dat_reg_plt_label_bnd, repel == TRUE), 
+                  mapping = aes(x = my_x, y = my_y, label = my_lab),
+                  nudge_x = c(0.2, -0.01), nudge_y = c(2, 2), max.overlaps = Inf, parse = TRUE) +
+  geom_text(data = filter(dat_reg_plt_label_bnd, repel == FALSE), 
+            mapping = aes(x = my_x, y = my_y, label = my_lab),
+            nudge_x = c(0.2, -0.01), nudge_y = c(2, 2), parse = FALSE) + 
+  labs(x = "Labor-market tightness, ratio of vacancies to unemployment", 
+       y = "Bound") +
+  theme_minimal()
+
+fout <- paste0("fig_", file_prg, "_bound-tightness.pdf")
+ggsave(here("out", fout), heigh =  5.833333, width = 8)
   
 close(CON)
