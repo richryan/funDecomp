@@ -312,20 +312,20 @@ ggsave(here("out", fout), heigh = myheight, width = mywidth)
 # Bound for Upsilon using estimated elasticity and value found in literature
 
 dat_reg_plt_label_hi <- dat_reg_plt %>% 
-  filter(near(bnd_hi, max(bnd_hi)) | near(bnd, min(bnd))) %>% 
   mutate(my_label = case_when(
-           near(bnd_hi, max(bnd_hi)) ~ paste0("Bound using previous value\nin the literature"),
-           near(bnd, min(bnd)) ~ paste("Bound using estimate\nfrom data")
+          date == ymd("2010-01-01") ~ paste0("Bound using previous value\nin the literature"),
+          date == ymd("2011-01-01") ~ paste("Bound using estimate\nfrom data")
          ),
          my_label_y = case_when(
-           near(bnd_hi, max(bnd_hi)) ~ bnd_hi,
-           near(bnd, min(bnd)) ~ bnd
+           date == ymd("2010-01-01") ~ round(bnd_hi, digits = 2),
+           date == ymd("2011-01-01") ~ round(bnd, digits = 2)
          ),
          my_label_x = case_when(
-           near(bnd_hi, max(bnd_hi)) ~ date,
-           near(bnd, min(bnd)) ~ date
-           ))
-
+           date == ymd("2010-01-01") ~ date,
+           date == ymd("2011-01-01") ~ date
+           )) |> 
+  filter(!is.na(my_label_x))
+  
 ggplot(data = dat_reg_plt) +
   geom_rect(
     data = filter(recess_wide,
@@ -340,10 +340,10 @@ ggplot(data = dat_reg_plt) +
     fill = csub_blue,
     alpha = 0.2
   ) +      
-  geom_line(mapping = aes(x = date, y = bnd), linewidth = 1.75, color = csub_blue) +
-  geom_line(mapping = aes(x = date, y = bnd_hi), linewidth = 1.75, color = "cyan") +  
+  geom_line(mapping = aes(x = date, y = bnd), linewidth = 1.25, color = csub_blue) +
+  geom_line(mapping = aes(x = date, y = bnd_hi), linewidth = 1.25, color = "cyan") +  
   geom_text_repel(data = dat_reg_plt_label_hi,
-                  mapping = aes(x = my_label_x, y = my_label_y, label = my_label), nudge_y = c(-2, 2), nudge_x = c(2000, -1000), max.overlaps = Inf) +
+                  mapping = aes(x = my_label_x, y = my_label_y, label = my_label), nudge_y = c(-3, 2), nudge_x = c(2000, -1000), max.overlaps = Inf) +
   labs(x = "", y = "Bound") +
   xlim(min(dat_reg_plt$date), max(dat_reg_plt$date)) +
   theme_minimal()  
