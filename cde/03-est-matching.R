@@ -405,7 +405,7 @@ dat_reg_plt_label_bnd <- tribble(
     0.5,  compute_bnd(compute_eta_mu_u(0.5, ggamma = ggamma_hi), ggamma = ggamma_hi), paste("gamma == ", round(ggamma_hi, 2)), TRUE,
     0.5,  compute_bnd(compute_eta_mu_u(0.5, ggamma = ggamma_hi), ggamma = ggamma_hi) + 0.75, "Bound computed using value\nfrom the literature,", FALSE,
     1.75, compute_bnd(compute_eta_mu_u(1.75, ggamma = ggamma), ggamma = ggamma), paste("hat(gamma)", "==", round(ggamma, 2)), TRUE,
-    1.75, compute_bnd(compute_eta_mu_u(1.75, ggamma = ggamma), ggamma = ggamma) + 0.75, "Bound computed using estimate\nfrom time-adjusted JOLTS data,", FALSE
+    1.75, compute_bnd(compute_eta_mu_u(1.75, ggamma = ggamma), ggamma = ggamma) + 1.2, "Bound computed using estimate\nfrom the statistical model in the text\nusing time-adjusted JOLTS data,", FALSE
 )
   
 ggplot(data = dat_reg_plt) +
