@@ -309,9 +309,6 @@ ggplot(data = dat_reg_plt) +
   xlim(min(dat_reg_plt$date), max(dat_reg_plt$date)) +
   theme_minimal()  
 
-writeLines(paste0("\\newcommand{\\bndhi}{", round(max(dat_reg_plt_label$bnd), digits = 3), "}"), con = CON)
-writeLines(paste0("\\newcommand{\\bndlo}{", round(min(dat_reg_plt_label$bnd), digits = 3), "}"), con = CON)
-
 fout <- paste0("fig_", file_prg, "_bound.pdf")
 ggsave(here("out", fout), heigh = myheight, width = mywidth)
 
@@ -353,9 +350,6 @@ ggplot(data = dat_reg_plt) +
   labs(x = "", y = "Bound") +
   xlim(min(dat_reg_plt$date), max(dat_reg_plt$date)) +
   theme_minimal()  
-
-writeLines(paste0("\\newcommand{\\bndhihi}{", round(max(dat_reg_plt_label$bnd_hi), digits = 3), "}"), con = CON)
-writeLines(paste0("\\newcommand{\\bndhilo}{", round(min(dat_reg_plt_label$bnd_hi), digits = 3), "}"), con = CON)
 
 fout <- paste0("fig_", file_prg, "_bound-hi.pdf")
 ggsave(here("out", fout), heigh = myheight, width = mywidth)
@@ -407,7 +401,13 @@ dat_reg_plt_label_bnd <- tribble(
     1.75, compute_bnd(compute_eta_mu_u(1.75, ggamma = ggamma), ggamma = ggamma), paste("hat(gamma)", "==", round(ggamma, 2)), TRUE,
     1.75, compute_bnd(compute_eta_mu_u(1.75, ggamma = ggamma), ggamma = ggamma) + 1.2, "Bound computed using estimate\nfrom the statistical model in the text\nusing time-adjusted JOLTS data,", FALSE
 )
-  
+
+writeLines(paste0("\\newcommand{\\bndhi}{", round(max(dat_reg_plt_label$bnd), digits = 3), "}"), con = CON)
+writeLines(paste0("\\newcommand{\\bndlo}{", round(min(dat_reg_plt_label$bnd), digits = 3), "}"), con = CON)
+
+writeLines(paste0("\\newcommand{\\bndhihi}{", round(max(dat_reg_plt_label$bnd_hi), digits = 3), "}"), con = CON)
+writeLines(paste0("\\newcommand{\\bndhilo}{", round(min(dat_reg_plt_label$bnd_hi), digits = 3), "}"), con = CON)
+
 ggplot(data = dat_reg_plt) +
   geom_line(mapping = aes(x = tight, y = bnd), color = csub_blue, linewidth = 1.2) +
   geom_line(mapping = aes(x = tight, y = bnd_hi), color = "cyan", linewidth = 1.2) +
