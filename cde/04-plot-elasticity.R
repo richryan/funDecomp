@@ -566,7 +566,9 @@ dat_long <- dat %>%
          ur = s_monthly / (s_monthly + compute_daily2monthly(find)),
          Upsilon = compute_T1(ttheta = ttheta, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c, ch = ch, cl = cl, pphi = pphi, ggamma = ggamma),
          elasticity_m_u = compute_elasticity_m_u(ttheta = ttheta, ggamma = ggamma),
-         Upsilon_bound = pmax(1 / elasticity_m_u, 1 / (1 - elasticity_m_u))) %>% 
+         elasticity_m_u_hi = compute_elasticity_m_u(ttheta = ttheta, ggamma = 1.27),
+         Upsilon_bound = pmax(1 / elasticity_m_u, 1 / (1 - elasticity_m_u)),
+         Upsilon_bound_hi = pmax(1 / elasticity_m_u_hi, 1 / (1 - elasticity_m_u_hi)),) %>% 
   verify(Upsilon <= Upsilon_bound) 
 
 dat_long_label <- dat_long %>% 
@@ -606,6 +608,26 @@ ggplot(data = dat_long) +
   geom_line(mapping = aes(x = y, y = Upsilon, color = case)) +
   geom_line(mapping = aes(x = y, y = Upsilon_bound, color = case, linetype = case))
 
+
+# Bound for different levels of productivity ------------------------------
+
+ggplot(data = dat_long) +
+  geom_hline(yintercept = 2)  +
+  geom_line(mapping = aes(x = y, y = Upsilon_bound_hi, color = case, linetype = case), linewidth = 1.2) +
+  geom_text_repel(data = dat_long_label,
+                  mapping = aes(x = y, y = Upsilon_bound_hi, label = my_label, color = case),
+                  max.overlaps = Inf,
+                  nudge_y = 0.05,
+                  box.padding = 3.0,
+                  parse = TRUE) +
+  labs(x = expression(paste(plain(Productivity), ", ",  italic('y'))),
+       y = "Bound") +
+  scale_color_viridis_d(begin = 0.0, end = 0.85) +
+  guides(color = "none", linetype = "none") +
+  theme_minimal()
+
+fout <- paste0("fig_", file_prg, "_bound-y.pdf")
+ggsave(here("out", fout), heigh = myheight, width = mywidth)
 
 # Wage Curve --------------------------------------------------------------
 
@@ -653,7 +675,7 @@ ggplot(data = dat_eqm) +
   labs(x = expression(paste(plain('Labor-market tightness'), ", ",  theta)), 
        y = expression(paste(plain('Equilibrium wages,'), " ", italic('w')))) 
 
-fout_eqm_w_tightness <- paste0("fig_", file_prg, "-eqm-wages-mkt-tightness.pdf")
+fout_eqm_w_tightness <- paste0("fig_", file_prg, "_eqm-wages-mkt-tightness.pdf")
 ggsave(here("out", fout_eqm_w_tightness), heigh = 1.4 * myheight, width = mywidth)
 
 stopifnot(33==12)
