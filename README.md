@@ -31,6 +31,10 @@ Here's the abstract:
 >   negotiations fail),
 >   but their influence on volatility is less important than firms' costs.
 
+## Accessing adjusted job-finding data ##
+
+## Code ##
+
 Code that replicates that project is contained in `cde/`.
 The scripts are
 
