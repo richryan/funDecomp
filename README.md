@@ -42,6 +42,14 @@ The scripts are
 	  hires for a month are recorded, 
 	  even those who separate before the month ends.
   * `03-est-matching.R`: Estimates the nonlinear mathching technology,
-	$M \left( u, v \right)$
-  * `04-plot-elasticity.R`:
+	$M \left( u, v \right) = \mu \frac{uv}{\left( u^{\gamma} + v^{\gamma} \right)^{1/\gamma}}$.   Various plots are produced showing how 
+  the Beveridge curve shifted since JOLTS data on vacancies 
+  became available and the fit produced by the estimated model.
+  * `04-plot-elasticity.R`: Plots the elasticity of matching
+  with respect to unemployment, $\eta_{M,u}$, and
+  the upper bound for $\Upsilon$,
+  $\max\left\{ \frac{1}{\eta_{M,u}}, \frac{1}{1-\eta_{M,u}} \right\}$.
+  The factor $\Upsilon$ is one of the factors 
+  in [Ljungqvist and Sargent's (2017)](https://www.aeaweb.org/articles?id=10.1257/aer.20150233) fundamental decomposition of the 
+  elasticity of market tightness with respect to productivity, $\eta_{\theta,y}$.
 
