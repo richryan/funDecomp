@@ -1,4 +1,4 @@
-# funDecomp #
+# funDecomp: Unemployment Volatility: When Workers Pay Costs upon Accepting Jobs#
 
 Code for the paper 
 *Unemployment Volatility: When Workers Pay Costs upon Accepting Jobs*.
@@ -11,7 +11,7 @@ Here's the abstract:
 >   adding the new hire to payroll is costly.
 >   These costs
 >   reduce the amount of resources that can go to recruiting workers
->   and % This % affects
+>   and affects
 >   amplify how unemployment responds to changes in productivity.
 >   Workers also incur up-front costs upon accepting jobs.
 >   Examples include moving expenses and regulatory fees.
