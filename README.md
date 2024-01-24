@@ -31,4 +31,17 @@ Here's the abstract:
 >   negotiations fail),
 >   but their influence on volatility is less important than firms' costs.
 
-Code that replicates that project
+Code that replicates that project is contained in `cde/`.
+The scripts are
+
+  * `01-get-FRED-data.R`: Retrieves data from [FRED](https://fred.stlouisfed.org/).
+  * `02-adjust-transition-rates.R`: Uses the FRED data to adjust rates of 
+  job finding and job separation to account for 
+      * workers' transitions between employment and unemployment and
+      * how the Job Openings and Labor Turnover Survey (JOLTS) records hires---all
+	  hires for a month are recorded, 
+	  even those who separate before the month ends.
+  * `03-est-matching.R`: Estimates the nonlinear mathching technology,
+	$M \left( u, v \right)$
+  * `04-plot-elasticity.R`:
+
