@@ -7,6 +7,8 @@
 # date_stamp_true:
 #   1 : include date stamp to generated .csv file
 #   0 : do not include date stamp to generated .csv file
+#   
+# Subsequent programs will need to be modified to update the project.
 # 
 # Date Started: 2023-08-21
 # Date Revised: 2023-08-21
