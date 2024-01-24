@@ -1,4 +1,4 @@
-# funDecomp: Unemployment Volatility: When Workers Pay Costs upon Accepting Jobs#
+# funDecomp #
 
 Code for the paper 
 *Unemployment Volatility: When Workers Pay Costs upon Accepting Jobs*.
