@@ -48,17 +48,16 @@ fout <- here("out", "dat_funDecomp.csv")
 write_csv(dat_useful, file = fout)
 
 head(dat_useful)
+#> # A tibble: 6 x 5
+#>   date       find_crude sep_crude  find    sep
+#>   <date>          <dbl>     <dbl> <dbl>  <dbl>
+#> 1 2000-12-01      0.963    0.0391 0.618 0.0402
+#> 2 2001-01-01      0.950    0.0417 0.616 0.0416
+#> 3 2001-02-01      0.871    0.0382 0.580 0.0394
+#> 4 2001-03-01      0.900    0.0404 0.583 0.0430
+#> 5 2001-04-01      0.830    0.0382 0.562 0.0389
+#> 6 2001-05-01      0.869    0.0390 0.577 0.0409
 ```
-
-    ## # A tibble: 6 x 5
-    ##   date       find_crude sep_crude  find    sep
-    ##   <date>          <dbl>     <dbl> <dbl>  <dbl>
-    ## 1 2000-12-01      0.963    0.0391 0.618 0.0402
-    ## 2 2001-01-01      0.950    0.0417 0.616 0.0416
-    ## 3 2001-02-01      0.871    0.0382 0.580 0.0394
-    ## 4 2001-03-01      0.900    0.0404 0.583 0.0430
-    ## 5 2001-04-01      0.830    0.0382 0.562 0.0389
-    ## 6 2001-05-01      0.869    0.0390 0.577 0.0409
 
 The paper contains a detailed account of the variables. Briefly, the
 variables are:
@@ -71,30 +70,31 @@ variables are:
 - `sep_crude` : unadjusted separation rate
 - `sep` : adjusted separation rate
 
+Here is a figure that uses the data:
+
 ``` r
-library(tidyverse) # for useful R functionality
-library(here)      # for accessing the data
+datfig <- read_csv(here("out", "dat_funDecomp.csv")) 
 
-dat <- read_csv(here("out", "dat_02-adjust-transition-rates.csv"))
-
-dat_useful <- dat |> 
-  select(date, ends_with("_crude"), find, sep)
-
-# Save the useful data
-fout <- here("out", "dat_funDecomp.csv")
-write_csv(dat_useful, file = fout)
-
+# Put the data into long form for plotting
+datfig <- datfig |> 
+  select(date, starts_with("find")) |> 
+  pivot_longer(starts_with("find")) 
+  
 csub_blue <- rgb(0, 26, 112, maxColorValue = 255)
 
-ggplot(data = dat_useful) +
+ggplot(data = datfig) +
   geom_hline(yintercept = 1.0, color = "maroon", linetype = "dotted") +
-  geom_line(mapping = aes(x = date, y = find), linetype = "longdash", color = csub_blue, size = 1.0) +
-  geom_line(mapping = aes(x = date, y = find_crude), size = 1.0) +
-  labs(x = "", y = "", title = "Monthly probability of finding a job") +
-  theme_light()
+  geom_line(mapping = aes(x = date, y = value, color = name, linetype = name), size = 0.9) +
+  scale_color_manual(values = c("find_crude" = "black", "find" = csub_blue)) +
+  scale_linetype_manual(values = c("find" = "solid", "find_crude" = "dashed")) +  
+  labs(x = "", y = "", title = "Monthly probability of finding a job", 
+       color = "Series", linetype = "Series") +
+  theme_light()  
 ```
 
-<img src="README_files/figure-gfm/fig-example-1.png" alt="Plot of adjusted and unadjusted rates of job finding."  />
+<img src="out/README_plot-find-1.png" alt="Plot of adjusted and unadjusted rates of job finding."  />
+
+Code that produces better-looking figures is contained in `cde/`.
 
 ## Overview of Code
 

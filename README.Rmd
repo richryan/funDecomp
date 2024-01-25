@@ -2,6 +2,14 @@
 output: github_document
 ---
 
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "out/README_"
+)
+```
+
 <!-- This document generates README.md upon Knitting in RStudio -->
 
 # funDecomp 
@@ -71,7 +79,7 @@ Briefly, the variables are:
 
 Here is a figure that uses the data:
 
-```{r fig-example, fig.alt = "Plot of adjusted and unadjusted rates of job finding.", message=FALSE, warning=FALSE}
+```{r plot-find, fig.alt = "Plot of adjusted and unadjusted rates of job finding.", message=FALSE, warning=FALSE}
 datfig <- read_csv(here("out", "dat_funDecomp.csv")) 
 
 # Put the data into long form for plotting
@@ -89,7 +97,6 @@ ggplot(data = datfig) +
   labs(x = "", y = "", title = "Monthly probability of finding a job", 
        color = "Series", linetype = "Series") +
   theme_light()  
-ggsave(here("out", "fig_README.png"))
 ```
 
 Code that produces better-looking figures is contained in `cde/`.
