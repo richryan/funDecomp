@@ -177,7 +177,7 @@ compute_c <- function(ttheta, m0, y, z, bbeta, s, ct, r, ch, cl, pphi, ggamma) {
 compute_ttheta_hi <- function(pphi, y, z, bbeta, r, s, c, cl, ch, ct) {
   #' Compute upper end of range for equilibrium tightness (ratio of vacancies to unemployment)
   #' 
-  #' The steady-state level of equilibrium tightness, the ratio of vacancies to
+  #' @description The steady-state level of equilibrium tightness, the ratio of vacancies to
   #' unemployment, is guaranteed to fall in a range. The upper end of the range is
   #' computed by this function. The computed number is useful because it can be
   #' passed to functions that compute equilibrium tightness.

@@ -130,7 +130,7 @@ The scripts are prefixed with the order in which they need to be run.
 After running an script,
 it is possible to view a function's documentation using `?my_function`.
 For example,
-`?compute_c` returns the documentation of the function `compute_c`.
+`docstring::docstring(compute_c)` returns the documentation of the function `compute_c`.
 
 This feature is accomplished with R's docstring package.
 
