@@ -13,6 +13,49 @@ myheight <- mywidth / golden
 csub_blue <- rgb(0, 53, 148, maxColorValue = 255)
 csub_gray <- rgb(112, 115, 114, maxColorValue = 255)
 
+# Functions ---------------------------------------------------------------
+
+compute_find <- function(ttheta, m0, ggamma) {
+  #' Compute probability of finding a job
+  #'
+  #' @param ttheta Number that represents market tightness, 
+  #' ratio of vacancies to number of unemployed
+  #' @param m0 Number that parameterizes matching efficiency.
+  #' @param ggamma Number that represents curvature of matching technology
+  #'
+  #' @return Returns a number, the probability of finding a job.
+  #'
+  #' @examples 
+  #' probability_find <- compute_find(0.5, 0.04, 0.1)
+  m0 * ttheta / ((1 + ttheta^ggamma)^(1 / ggamma))
+}
+
+compute_find_prime <- function(ttheta, m0, ggamma) {
+  T1 <- 1 - ((1 + ttheta^ggamma)^(-1)) * ttheta^ggamma
+  T2 <- (1 + ttheta^ggamma)^(1 / ggamma)
+  m0 * T1 / T2
+}
+
+# Check that the numerical derivative is close to the coded derivative
+x_check <- seq(0.1, 1.5, length.out = 100)
+my_test_ggamma <- 0.5
+stopifnot(all(near(numDeriv::grad(func = function(x) compute_find(x, m0 = 1.0, ggamma = my_test_ggamma), x = x_check) - compute_find_prime(x_check, m0 = 1.0, ggamma = my_test_ggamma), 0)))
+
+compute_fill <- function(ttheta, m0, ggamma) {
+  #' Compute probability of filling a vacancy.
+  #'
+  #' @param ttheta Number that represents market tightness, 
+  #' ratio of vacancies to number of unemployed
+  #' @param m0 Number that parameterizes matching efficiency.
+  #' @param ggamma Number that represents curvature of matching technology
+  #'
+  #' @return Returns a number, the probability of filling a vacancy.
+  #'
+  #' @examples 
+  #' probability_fill <- compute_find(ttheta = 0.5, m0 = 0.04, ggamma = 0.1)
+  m0 / ((1 + ttheta^ggamma)^(1 / ggamma))
+}
+
 # Parameters --------------------------------------------------------------
 
 compute_monthly2daily <- function(x) {
@@ -53,55 +96,17 @@ bbeta <- 1 / (1 + r)
 s_monthly <- 0.036
 s <- compute_monthly2daily(s_monthly)
 
-y <- 1 
-z <- 0.71 
-pphi <- 0.50
-
 target_elasticity <- 7.5636
 
 ggamma <- readRDS(here("out", "dat_03-est-matching.rds"))
 
-# Functions ---------------------------------------------------------------
-
-compute_find <- function(ttheta, m0, ggamma) {
-  #' Compute probability of finding a job
-  #'
-  #' @param ttheta Number that represents market tightness, 
-  #' ratio of vacancies to number of unemployed
-  #' @param m0 Number that parameterizes matching efficiency.
-  #' @param ggamma Number that represents curvature of matching technology
-  #'
-  #' @return Returns a number, the probability of finding a job.
-  #'
-  #' @examples 
-  #' probability_find <- compute_find(0.5, 0.04, 0.1)
-  m0 * ttheta / ((1 + ttheta^ggamma)^(1 / ggamma))
-}
-
-compute_find_prime <- function(ttheta, m0, ggamma) {
-  T1 <- 1 - ((1 + ttheta^ggamma)^(-1)) * ttheta^ggamma
-  T2 <- (1 + ttheta^ggamma)^(1 / ggamma)
-  m0 * T1 / T2
-}
-
-# Check that the numerical derivative is close to the coded derivative
-x_check <- seq(0.1, 1.5, length.out = 100)
-stopifnot(all(near(numDeriv::grad(func = function(x) compute_find(x, m0 = 1.0, ggamma = ggamma), x = x_check) - compute_find_prime(x_check, m0 = 1.0, ggamma = ggamma), 0)))
-
-compute_fill <- function(ttheta, m0, ggamma) {
-  #' Compute probability of filling a vacancy.
-  #'
-  #' @param ttheta Number that represents market tightness, 
-  #' ratio of vacancies to number of unemployed
-  #' @param m0 Number that parameterizes matching efficiency.
-  #' @param ggamma Number that represents curvature of matching technology
-  #'
-  #' @return Returns a number, the probability of filling a vacancy.
-  #'
-  #' @examples 
-  #' probability_fill <- compute_find(ttheta = 0.5, m0 = 0.04, ggamma = 0.1)
-  m0 / ((1 + ttheta^ggamma)^(1 / ggamma))
-}
+y <- 1 
+# Pissarides (2009, Econometrica) calibration
+z <- 0.71 
+# Shimer (2005, AER) calibration
+z_shimer2005 <- 0.4
+pphi <- 0.50
+TOL <- 1e-8
 
 # Get matching efficiency to target job-finding rate
 npts <- 100
@@ -141,6 +146,9 @@ match_efficiency <- sol_match_efficiency$root
 find_monthly <- compute_daily2monthly(compute_find(ttheta = target_tight, m0 = match_efficiency, ggamma = ggamma))
 cat('Implied monthly unemployment rate =', s_monthly / (s_monthly + find_monthly))
 
+
+# Table: Model results at different combinations of job-creation c --------
+
 compute_c <- function(ttheta, m0, y, z, bbeta, s, ct, r, ch, cl, pphi, ggamma) {
   #' Compute the cost of posting a vacancy, given labor-market tightness.
   #'
@@ -171,8 +179,6 @@ compute_c <- function(ttheta, m0, y, z, bbeta, s, ct, r, ch, cl, pphi, ggamma) {
   c_T2 <- (1 - pphi) * fill / (r + s + pphi * find)
   return(c_T2 * c_T1)
 }
-
-# Steady-state dynamics --------------------------------------------------
 
 compute_ttheta_hi <- function(pphi, y, z, bbeta, r, s, c, cl, ch, ct) {
   #' Compute upper end of range for equilibrium tightness (ratio of vacancies to unemployment)
@@ -400,37 +406,31 @@ compute_wage_elasticity <- function(ttheta, m0, y, z, bbeta, s, ct, r, c, ch, cl
   return(ret)
 }
 
-
-# Check that compute_eqm_tight() returns target_tight
-# TOL <- 1e-8
-# check_tight <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct, r = r, c = c, ch = ch, cl = cl, pphi = pphi, ggamma = ggamma, mytol = TOL)
+# BASELINE Flow-cost of maintaining a vacancy for baseline with no fixed costs
+cl_baseline <- 0.0
+ch_baseline <- 0.0
+# ct_baseline <- 0.0
+# c_baseline <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, ch = ch_baseline, cl = cl_baseline, pphi = pphi, ggamma = ggamma)
+# ttheta_baseline <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, pphi = pphi, ggamma = ggamma, mytol = TOL)
+# stopifnot(near(ttheta_baseline, target_tight))
+# elasticity_baseline <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+#                                           c = c_baseline, ct = ct_baseline, ch = ch_baseline, cl = cl_baseline)
+# elasticity_w_baseline <- compute_wage_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, pphi = pphi, ggamma = ggamma)
+# 
+# # Check that compute_eqm_tight() returns target_tight
+# check_tight <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s,
+#                                  ct = ct_baseline, r = r,
+#                                  c = c_baseline, ch = ch_baseline, cl = cl_baseline, pphi = pphi, ggamma = ggamma, mytol = TOL)
 # sol_tight <- uniroot(compute_eqm_tight0,
-#   y = y, m0 = match_efficiency, z = z, bbeta = bbeta, s = s, ct = ct, r = r, 
-#   c = c, ch = ch, cl = cl, pphi = pphi, ggamma = ggamma,
+#   y = y, m0 = match_efficiency, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, pphi = pphi, ggamma = ggamma,
 #   lower = 1e-5,
-#   upper = compute_ttheta_hi(pphi = pphi, y = y, z = z, bbeta = bbeta, r = r, s = s, c = c, ch = ch, ct = ct),
+#   upper = compute_ttheta_hi(pphi = pphi, y = y, z = z, bbeta = bbeta, r = r, s = s, c = c_baseline, ch = ch_baseline, ct = ct_baseline, cl = cl_baseline),
 #   tol = TOL
 #   )
 # cat("Difference between numerical and target tight:", sol_tight$root - target_tight)
 # cat("Difference between numerical and target tight:", check_tight - target_tight)
 # cat("Difference between numerical and target tight:", check_tight - sol_tight$root)
 
-# Productivity
-sizey <- 100
-v_prod <- seq(0.8 * y, 1.2 * y, length.out = sizey)
-
-TOL <- 1e-8
-
-# BASELINE Flow-cost of maintaining a vacancy for baseline with no fixed costs
-cl_baseline <- 0.0
-ch_baseline <- 0.0
-ct_baseline <- 0.0
-c_baseline <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, ch = ch_baseline, cl = cl_baseline, pphi = pphi, ggamma = ggamma)
-ttheta_baseline <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, pphi = pphi, ggamma = ggamma, mytol = TOL)
-stopifnot(near(ttheta_baseline, target_tight))
-elasticity_baseline <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                          c = c_baseline, ct = ct_baseline, ch = ch_baseline, cl = cl_baseline)
-elasticity_w_baseline <- compute_wage_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, pphi = pphi, ggamma = ggamma)
 
 # Check to see uniqueness condition holds
 # ttheta_bar <- (1 - pphi) * (y - z - bbeta * s * ct_baseline - bbeta * (r + s) * ch_baseline / (1 - pphi) + bbeta * cl_baseline) / pphi / c_baseline
@@ -441,40 +441,40 @@ elasticity_w_baseline <- compute_wage_elasticity(ttheta = ttheta_baseline, m0 = 
 # stopifnot(check_unique < 0)
 
 # Confirm that dwdy evaluates to 1 when pphi = 1 and 0 when pphi = 0
-dwdy0 <- compute_dwdy(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, ggamma = ggamma,
-                     pphi = 0)
-stopifnot(near(dwdy0, 0))
-dwdy1 <- compute_dwdy(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, ggamma = ggamma,
-                     pphi = 1)
-stopifnot(near(dwdy1, 1))
+# dwdy0 <- compute_dwdy(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, ggamma = ggamma,
+#                      pphi = 0)
+# stopifnot(near(dwdy0, 0))
+# dwdy1 <- compute_dwdy(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, c = c_baseline, ch = ch_baseline, cl = cl_baseline, ggamma = ggamma,
+#                      pphi = 1)
+# stopifnot(near(dwdy1, 1))
 
 # HIGH H: Maximum fixed costs paid by firms
-ct_hhi <- 0.0
+# ct_hhi <- 0.0
 ch_hhi_T1 <- (1 - pphi) * (y - z - bbeta * s * ct_hhi + bbeta * compute_find(ttheta = target_tight, m0 = match_efficiency, ggamma = ggamma) * cl_baseline)
 ch_hhi_T2 <- bbeta * (r + s + pphi * compute_find(ttheta = target_tight, m0 = match_efficiency, ggamma = ggamma))
 ch_hhi <- ch_hhi_T1 / ch_hhi_T2 - 0.001
 cl_hhi <- cl_baseline
-c_hhi <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ch = ch_hhi, ct = ct_hhi, cl = cl_hhi, pphi = pphi, ggamma = ggamma) 
-ttheta_hhi <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_hhi, r = r, c = c_hhi, ch = ch_hhi, cl = cl_hhi, pphi = pphi, ggamma = ggamma, mytol = TOL)
-stopifnot(near(ttheta_hhi, target_tight))
-elasticity_hhi <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                     c = c_hhi, ct = ct_hhi, ch = ch_hhi, cl = cl_hhi)
-elasticity_w_hhi <- compute_wage_elasticity(ttheta = ttheta_hhi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                            c = c_hhi, ct = ct_hhi, ch = ch_hhi, cl = cl_hhi)
+# c_hhi <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ch = ch_hhi, ct = ct_hhi, cl = cl_hhi, pphi = pphi, ggamma = ggamma) 
+# ttheta_hhi <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_hhi, r = r, c = c_hhi, ch = ch_hhi, cl = cl_hhi, pphi = pphi, ggamma = ggamma, mytol = TOL)
+# stopifnot(near(ttheta_hhi, target_tight))
+# elasticity_hhi <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+#                                      c = c_hhi, ct = ct_hhi, ch = ch_hhi, cl = cl_hhi)
+# elasticity_w_hhi <- compute_wage_elasticity(ttheta = ttheta_hhi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+#                                             c = c_hhi, ct = ct_hhi, ch = ch_hhi, cl = cl_hhi)
 
 # MIDDLE H: Half the fixed costs paid by firms
-ct_hhi2 <- 0.0
+# ct_hhi2 <- 0.0
 ch_hhi2 <- ch_hhi / 2.0
 cl_hhi2 <- cl_baseline
-c_hhi2 <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                    ch = ch_hhi2, ct = ct_hhi2, cl = cl_hhi2) 
-ttheta_hhi2 <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma, mytol = TOL,
-                                c = c_hhi2, ct = ct_hhi2, ch = ch_hhi2, cl = cl_baseline)
-stopifnot(near(ttheta_hhi2, target_tight))
-elasticity_hhi2 <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                      c = c_hhi2, ct = ct_hhi2, ch = ch_hhi2, cl = cl_hhi2)
-elasticity_w_hhi2 <- compute_wage_elasticity(ttheta = ttheta_hhi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                             c = c_baseline, ct = ct_hhi, ch = ch_hhi2, cl = cl_hhi2)
+# c_hhi2 <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+#                     ch = ch_hhi2, ct = ct_hhi2, cl = cl_hhi2) 
+# ttheta_hhi2 <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma, mytol = TOL,
+#                                 c = c_hhi2, ct = ct_hhi2, ch = ch_hhi2, cl = cl_baseline)
+# stopifnot(near(ttheta_hhi2, target_tight))
+# elasticity_hhi2 <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+#                                       c = c_hhi2, ct = ct_hhi2, ch = ch_hhi2, cl = cl_hhi2)
+# elasticity_w_hhi2 <- compute_wage_elasticity(ttheta = ttheta_hhi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+#                                              c = c_hhi2, ct = 0, ch = ch_hhi2, cl = cl_hhi2)
 
 # SPLIT: Split fixed cost of matching between worker and firm
 cH <- ch_hhi
@@ -482,23 +482,23 @@ ppsi <- 0.5
 ct_ppsi <- 0.0
 ch_ppsi <- (1 - ppsi) * cH 
 cl_ppsi <- ppsi * cH
-c_ppsi <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ch = ch_ppsi, ct = ct_ppsi, cl = cl_ppsi, pphi = pphi, ggamma = ggamma) 
-ttheta_ppsi <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_ppsi, r = r, c = c_ppsi, ch = ch_ppsi, cl = cl_ppsi, pphi = pphi, ggamma = ggamma, mytol = TOL)
-stopifnot(near(ttheta_ppsi, target_tight))
-elasticity_ppsi <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                      c = c_ppsi, ct = ct_ppsi, ch = ch_ppsi, cl = cl_ppsi)
-elasticity_w_ppsi <- compute_wage_elasticity(ttheta = ttheta_hhi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                             c = c_ppsi, ct = ct_ppsi, ch = ch_ppsi, cl = cl_ppsi)
-
-# Confirm that dwdy evaluates to 1 when pphi = 1 and 0 when pphi = 0
-dwdy0 <- compute_dwdy(ttheta = ttheta_ppsi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ggamma = ggamma,
-                      c = c_ppsi, ct = ct_ppsi, ch = ch_ppsi, cl = cl_ppsi, 
-                     pphi = 0)
-stopifnot(near(dwdy0, 0))
-dwdy1 <- compute_dwdy(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ggamma = ggamma,
-                      c = c_ppsi, ct = ct_ppsi, ch = ch_ppsi, cl = cl_ppsi, 
-                     pphi = 1)
-stopifnot(near(dwdy1, 1))
+# c_ppsi <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ch = ch_ppsi, ct = ct_ppsi, cl = cl_ppsi, pphi = pphi, ggamma = ggamma) 
+# ttheta_ppsi <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, ct = ct_ppsi, r = r, c = c_ppsi, ch = ch_ppsi, cl = cl_ppsi, pphi = pphi, ggamma = ggamma, mytol = TOL)
+# stopifnot(near(ttheta_ppsi, target_tight))
+# elasticity_ppsi <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+#                                       c = c_ppsi, ct = ct_ppsi, ch = ch_ppsi, cl = cl_ppsi)
+# elasticity_w_ppsi <- compute_wage_elasticity(ttheta = ttheta_hhi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+#                                              c = c_ppsi, ct = ct_ppsi, ch = ch_ppsi, cl = cl_ppsi)
+# 
+# # Confirm that dwdy evaluates to 1 when pphi = 1 and 0 when pphi = 0
+# dwdy0 <- compute_dwdy(ttheta = ttheta_ppsi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ggamma = ggamma,
+#                       c = c_ppsi, ct = ct_ppsi, ch = ch_ppsi, cl = cl_ppsi, 
+#                      pphi = 0)
+# stopifnot(near(dwdy0, 0))
+# dwdy1 <- compute_dwdy(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ggamma = ggamma,
+#                       c = c_ppsi, ct = ct_ppsi, ch = ch_ppsi, cl = cl_ppsi, 
+#                      pphi = 1)
+# stopifnot(near(dwdy1, 1))
 
 dat <- tribble(
   ~economy,    ~case,      ~c,         ~ch,         ~cl,         ~elasticity,          ~elasticity_w,
@@ -507,6 +507,74 @@ dat <- tribble(
   "High $h$",   "high_h",   c_hhi,      ch_hhi,      cl_hhi,      elasticity_hhi,       elasticity_w_hhi,
   "Split",      "split",    c_ppsi,     ch_ppsi,     cl_ppsi,     elasticity_ppsi,      elasticity_w_ppsi
 )
+
+check_target_tight <- pmap_dbl(
+  # Arguments that vary go first
+  list(c = dat_test$c,
+       ch = dat_test$ch,
+       cl = dat_test$cl),
+  # function
+  compute_eqm_tight,
+  # non-varying arguments
+  m0 = match_efficiency,
+  y = y,
+  z = z,
+  bbeta = bbeta,
+  s = s,
+  ct = 0,
+  r = r,
+  pphi = pphi,
+  ggamma = ggamma,
+  mytol = TOL
+)
+
+stopifnot(near(check_target_tight, target_tight))
+
+dat_test <- dat |> 
+  select(-elasticity, - elasticity_w) |> 
+  mutate(check_c = pmap_dbl(list(cl = dat_test$cl, dat_test$ch), 
+                            compute_c,
+                            ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+                                      ct = 0),
+         elasticity = pmap_dbl(list(c = dat_test$c, ch = dat_test$ch, cl = dat_test$cl),
+                               compute_elasticity,
+                               ttheta = target_tight, 
+                               m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, 
+                               pphi = pphi, ggamma = ggamma,
+                               ct = 0),
+         elasticity_w = pmap_dbl(list(c = dat_test$c, ch = dat_test$ch, cl = dat_test$cl),
+                                 compute_wage_elasticity,
+                                 ttheta = target_tight, 
+                                 m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, 
+                                 pphi = pphi, ggamma = ggamma,
+                                 ct = 0))
+
+# myF <- function(c, ch, cl) {
+#   
+# }
+
+stopifnot(33==12)
+
+# Function that maps over c, ch, cl to compute elasticity and elasticity_w
+# TKTK
+compute_elasticity_elasticity_w <- function(z, c, ch, cl, ct) {
+  ttheta_ii <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, 
+                                 c = c, ct = ct, ch = ch, cl = cl, 
+                                 pphi = pphi, ggamma = ggamma, mytol = TOL)
+  stopifnot(near(ttheta_ii, target_tight))
+  elasticity_ii <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma, 
+                                        c = c, ct = ct, ch = ch, cl = cl)
+  elasticity_w_ppsi <- compute_wage_elasticity(ttheta = ttheta_hhi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
+                                               c = c_ppsi, ct = ct, ch = ch, cl = cl)
+}
+
+# Steady-state dynamics --------------------------------------------------
+
+# Productivity
+sizey <- 100
+v_prod <- seq(0.8 * y, 1.2 * y, length.out = sizey)
+
+TOL <- 1e-8
 
 compute_dynamics <- function(v_prod, m0, z, bbeta, s, c, ch, cl, ct, r, pphi, ggamma, mytol) {
   df <- tibble(ttheta = map_vec(v_prod, compute_eqm_tight, c = c, ch = ch, cl = cl, m0 = m0, z = z, bbeta = bbeta, s = s, ct= ct, r = r, pphi = pphi, ggamma = ggamma, mytol = mytol),
