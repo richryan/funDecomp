@@ -406,6 +406,9 @@ compute_wage_elasticity <- function(ttheta, m0, y, z, bbeta, s, ct, r, c, ch, cl
   return(ret)
 }
 
+# For all the economies, ct = 0
+ct <- 0.0
+
 # BASELINE Flow-cost of maintaining a vacancy for baseline with no fixed costs
 cl_baseline <- 0.0
 ch_baseline <- 0.0
@@ -479,7 +482,7 @@ cl_hhi2 <- cl_baseline
 # SPLIT: Split fixed cost of matching between worker and firm
 cH <- ch_hhi
 ppsi <- 0.5
-ct_ppsi <- 0.0
+# ct_ppsi <- 0.0
 ch_ppsi <- (1 - ppsi) * cH 
 cl_ppsi <- ppsi * cH
 # c_ppsi <- compute_c(ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ch = ch_ppsi, ct = ct_ppsi, cl = cl_ppsi, pphi = pphi, ggamma = ggamma) 
@@ -500,19 +503,55 @@ cl_ppsi <- ppsi * cH
 #                      pphi = 1)
 # stopifnot(near(dwdy1, 1))
 
-dat <- tribble(
-  ~economy,    ~case,      ~c,         ~ch,         ~cl,         ~elasticity,          ~elasticity_w,
-  "Baseline",   "baseline", c_baseline, ch_baseline, cl_baseline, elasticity_baseline,  elasticity_w_baseline,
-  "Middle $h$", "middle_h", c_hhi2,     ch_hhi2,     cl_hhi2,     elasticity_hhi2,      elasticity_w_hhi2,
-  "High $h$",   "high_h",   c_hhi,      ch_hhi,      cl_hhi,      elasticity_hhi,       elasticity_w_hhi,
-  "Split",      "split",    c_ppsi,     ch_ppsi,     cl_ppsi,     elasticity_ppsi,      elasticity_w_ppsi
+dat_tab <- tribble(
+  ~economy,    ~case,       ~ch,         ~cl,         
+  "Baseline",   "baseline",  ch_baseline, cl_baseline,
+  "Middle $h$", "middle_h",  ch_hhi2,     cl_hhi2,
+  "High $h$",   "high_h",    ch_hhi,      cl_hhi,   
+  "Split",      "split",     ch_ppsi,     cl_ppsi    
 )
+
+dat_tab <- dat_tab |> 
+  mutate(c = pmap_dbl(list(cl = dat_tab$cl, dat_tab$ch), 
+                            # function
+                            compute_c,
+                            # parameters that do not vary
+                            ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma, ct = ct)) |> 
+  mutate(elasticity = pmap_dbl(list(c = dat_tab$c, ch = dat_tab$ch, cl = dat_tab$cl),
+                               # function
+                               compute_elasticity,
+                               # parameters that do not vary
+                               ttheta = target_tight, m0 = match_efficiency, 
+                               y = y, z = z, bbeta = bbeta, s = s, r = r, 
+                               pphi = pphi, ggamma = ggamma,
+                               ct = ct),
+         elasticity_w = pmap_dbl(list(c = dat_tab$c, ch = dat_tab$ch, cl = dat_tab$cl),
+                                 # function
+                                 compute_wage_elasticity,
+                                 # parameters that do not vary
+                                 ttheta = target_tight, m0 = match_efficiency, 
+                                 y = y, z = z, bbeta = bbeta, s = s, r = r, 
+                                 pphi = pphi, ggamma = ggamma,
+                                 ct = ct))
+
+
+check_dwdy0 <- pmap_dbl(list(c = dat_tab$c, ch = dat_tab$ch, cl = dat_tab$cl),
+  compute_dwdy,
+  ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ggamma = ggamma, ct = ct, 
+  pphi = 0)
+stopifnot(near(check_dwdy0, 0))
+
+check_dwdy1 <- pmap_dbl(list(c = dat_tab$c, ch = dat_tab$ch, cl = dat_tab$cl),
+  compute_dwdy,
+  ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, ggamma = ggamma, ct = ct, 
+                     pphi = 1)
+stopifnot(near(check_dwdy1, 1))
 
 check_target_tight <- pmap_dbl(
   # Arguments that vary go first
-  list(c = dat_test$c,
-       ch = dat_test$ch,
-       cl = dat_test$cl),
+  list(c = dat_tab$c,
+       ch = dat_tab$ch,
+       cl = dat_tab$cl),
   # function
   compute_eqm_tight,
   # non-varying arguments
@@ -530,60 +569,14 @@ check_target_tight <- pmap_dbl(
 
 stopifnot(near(check_target_tight, target_tight))
 
-dat_test <- dat |> 
-  select(-elasticity, - elasticity_w) |> 
-  mutate(check_c = pmap_dbl(list(cl = dat_test$cl, dat_test$ch), 
-                            compute_c,
-                            ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                      ct = 0),
-         elasticity = pmap_dbl(list(c = dat_test$c, ch = dat_test$ch, cl = dat_test$cl),
-                               compute_elasticity,
-                               ttheta = target_tight, 
-                               m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, 
-                               pphi = pphi, ggamma = ggamma,
-                               ct = 0),
-         elasticity_w = pmap_dbl(list(c = dat_test$c, ch = dat_test$ch, cl = dat_test$cl),
-                                 compute_wage_elasticity,
-                                 ttheta = target_tight, 
-                                 m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, 
-                                 pphi = pphi, ggamma = ggamma,
-                                 ct = 0))
 
-# myF <- function(c, ch, cl) {
-#   
-# }
-
-stopifnot(33==12)
-
-# Function that maps over c, ch, cl to compute elasticity and elasticity_w
-# TKTK
-compute_elasticity_elasticity_w <- function(z, c, ch, cl, ct) {
-  ttheta_ii <- compute_eqm_tight(m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, 
-                                 c = c, ct = ct, ch = ch, cl = cl, 
-                                 pphi = pphi, ggamma = ggamma, mytol = TOL)
-  stopifnot(near(ttheta_ii, target_tight))
-  elasticity_ii <- compute_elasticity(ttheta = ttheta_baseline, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma, 
-                                        c = c, ct = ct, ch = ch, cl = cl)
-  elasticity_w_ppsi <- compute_wage_elasticity(ttheta = ttheta_hhi, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma,
-                                               c = c_ppsi, ct = ct, ch = ch, cl = cl)
-}
-
-# Steady-state dynamics --------------------------------------------------
-
-# Productivity
-sizey <- 100
-v_prod <- seq(0.8 * y, 1.2 * y, length.out = sizey)
-
-TOL <- 1e-8
-
-compute_dynamics <- function(v_prod, m0, z, bbeta, s, c, ch, cl, ct, r, pphi, ggamma, mytol) {
-  df <- tibble(ttheta = map_vec(v_prod, compute_eqm_tight, c = c, ch = ch, cl = cl, m0 = m0, z = z, bbeta = bbeta, s = s, ct= ct, r = r, pphi = pphi, ggamma = ggamma, mytol = mytol),
-               y = v_prod)
-  return(df)
-}
-
-dat <- dat %>% 
-  mutate(dynamics = pmap(list(c = c, ch = ch, cl = cl), compute_dynamics, v_prod = v_prod, m0 = match_efficiency, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, pphi = pphi, ggamma = ggamma, mytol = TOL)) 
+# dat <- tribble(
+#   ~economy,    ~case,      ~c,         ~ch,         ~cl,         ~elasticity,          ~elasticity_w,
+#   "Baseline",   "baseline", c_baseline, ch_baseline, cl_baseline, elasticity_baseline,  elasticity_w_baseline,
+#   "Middle $h$", "middle_h", c_hhi2,     ch_hhi2,     cl_hhi2,     elasticity_hhi2,      elasticity_w_hhi2,
+#   "High $h$",   "high_h",   c_hhi,      ch_hhi,      cl_hhi,      elasticity_hhi,       elasticity_w_hhi,
+#   "Split",      "split",    c_ppsi,     ch_ppsi,     cl_ppsi,     elasticity_ppsi,      elasticity_w_ppsi
+# )
 
 make_pretty_num <- function(x, ndigits, smalln) {
   fpretty <- function(z, smalln, ndigits) {
@@ -603,7 +596,7 @@ make_pretty_num <- function(x, ndigits, smalln) {
 # Save table as LaTeX output
 ndigits <- 3
 smalln <- 0.01
-dat_tbl <- dat %>% 
+dat_tbl_output <- dat_tbl %>% 
   select(-dynamics, -case) %>% 
   mutate(across(-economy, ~ make_pretty_num(.x, ndigits = ndigits, smalln = smalln))) %>%
   rename(`{$c$}` = c,
@@ -627,7 +620,24 @@ kableExtra::kable(dat_tbl, format = "latex", booktabs = TRUE, align = c("l", rep
                        escape = FALSE,
                        threeparttable = TRUE) %>%
     kableExtra::save_kable(file = tbl_out)  
-  
+
+# Steady-state dynamics --------------------------------------------------
+
+# Productivity
+sizey <- 100
+v_prod <- seq(0.8 * y, 1.2 * y, length.out = sizey)
+
+TOL <- 1e-8
+
+compute_dynamics <- function(v_prod, m0, z, bbeta, s, c, ch, cl, ct, r, pphi, ggamma, mytol) {
+  df <- tibble(ttheta = map_vec(v_prod, compute_eqm_tight, c = c, ch = ch, cl = cl, m0 = m0, z = z, bbeta = bbeta, s = s, ct= ct, r = r, pphi = pphi, ggamma = ggamma, mytol = mytol),
+               y = v_prod)
+  return(df)
+}
+
+dat <- dat %>% 
+  mutate(dynamics = pmap(list(c = c, ch = ch, cl = cl), compute_dynamics, v_prod = v_prod, m0 = match_efficiency, z = z, bbeta = bbeta, s = s, ct = ct_baseline, r = r, pphi = pphi, ggamma = ggamma, mytol = TOL)) 
+
 dat_long <- dat %>% 
   unnest(dynamics) %>% 
   mutate(find = compute_find(ttheta = ttheta, m0 = match_efficiency, ggamma = ggamma),
