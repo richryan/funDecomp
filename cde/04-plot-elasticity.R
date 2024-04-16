@@ -452,7 +452,7 @@ ch_baseline <- 0.0
 # stopifnot(near(dwdy1, 1))
 
 # HIGH H: Maximum fixed costs paid by firms
-# ct_hhi <- 0.0
+ct_hhi <- ct
 ch_hhi_T1 <- (1 - pphi) * (y - z - bbeta * s * ct_hhi + bbeta * compute_find(ttheta = target_tight, m0 = match_efficiency, ggamma = ggamma) * cl_baseline)
 ch_hhi_T2 <- bbeta * (r + s + pphi * compute_find(ttheta = target_tight, m0 = match_efficiency, ggamma = ggamma))
 ch_hhi <- ch_hhi_T1 / ch_hhi_T2 - 0.001
@@ -511,12 +511,17 @@ dat_tab <- tribble(
   "Split",      "split",     ch_ppsi,     cl_ppsi    
 )
 
+# Compute c
 dat_tab <- dat_tab |> 
   mutate(c = pmap_dbl(list(cl = dat_tab$cl, dat_tab$ch), 
                             # function
                             compute_c,
                             # parameters that do not vary
-                            ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma, ct = ct)) |> 
+                            ttheta = target_tight, m0 = match_efficiency, y = y, z = z, bbeta = bbeta, s = s, r = r, pphi = pphi, ggamma = ggamma, ct = ct)) 
+
+
+# Compute elasticities
+dat_tab <- dat_tab |> 
   mutate(elasticity = pmap_dbl(list(c = dat_tab$c, ch = dat_tab$ch, cl = dat_tab$cl),
                                # function
                                compute_elasticity,
@@ -596,8 +601,8 @@ make_pretty_num <- function(x, ndigits, smalln) {
 # Save table as LaTeX output
 ndigits <- 3
 smalln <- 0.01
-dat_tbl_output <- dat_tbl %>% 
-  select(-dynamics, -case) %>% 
+dat_tbl_output <- dat_tab %>% 
+  select(-case) %>% 
   mutate(across(-economy, ~ make_pretty_num(.x, ndigits = ndigits, smalln = smalln))) %>%
   rename(`{$c$}` = c,
          `{$h$}` = ch,
@@ -607,8 +612,8 @@ dat_tbl_output <- dat_tbl %>%
          Economy = economy)
 
 # Create .tex table 
-tbl_out <- here("out", paste0("tbl_", file_prg, "-experiment", ".tex"))
-kableExtra::kable(dat_tbl, format = "latex", booktabs = TRUE, align = c("l", rep("S", 5)),
+tbl_fout <- here("out", paste0("tbl_", file_prg, "-experiment", ".tex"))
+kableExtra::kable(dat_tbl_output, format = "latex", booktabs = TRUE, align = c("l", rep("S", 5)),
                   caption = "\\label{tab:model-results} Model results at different combinations of job-creation costs.",
                   escape = FALSE,
                   table.envir = "table") %>% 
@@ -619,7 +624,7 @@ kableExtra::kable(dat_tbl, format = "latex", booktabs = TRUE, align = c("l", rep
                        title_format = c("italic"),
                        escape = FALSE,
                        threeparttable = TRUE) %>%
-    kableExtra::save_kable(file = tbl_out)  
+    kableExtra::save_kable(file = tbl_fout)  
 
 # Steady-state dynamics --------------------------------------------------
 
