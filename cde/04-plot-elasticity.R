@@ -104,7 +104,7 @@ y <- 1
 # Pissarides (2009, Econometrica) calibration
 z <- 0.71 
 # Shimer (2005, AER) calibration
-z_shimer2005 <- 0.4
+z_shimer2005 <- 0.42
 pphi <- 0.50
 TOL <- 1e-8
 
@@ -872,13 +872,20 @@ writeLines(paste0("\\newcommand{\\smonthly}{", s_monthly, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\targetTight}{", target_tight, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\findMonthly}{", find_monthly, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\uMonthly}{", round(100 * s_monthly / (s_monthly + find_monthly), digits = 1), "}"), con = CON)
+
 # Baseline parameters
 economy_baseline <- dat_tab |> 
+  filter(economy == "Baseline")
+economy_baseline_shimer_2005 <- dat_tab_shimer2005 |> 
   filter(economy == "Baseline")
 writeLines(paste0("\\newcommand{\\ttau}{", ct, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\chBaseline}{", economy_baseline$ch, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\clBaseline}{", economy_baseline$cl, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\wBaseline}{", round(economy_baseline$wage, 3), "}"), con = CON)
+writeLines(paste0("\\newcommand{\\replacementRatioBaseline}{", round(z / economy_baseline$wage, 2), "}"), con = CON)
+writeLines(paste0("\\newcommand{\\replacementRatioBaselineShimerAER}{", round(z_shimer2005 / economy_baseline_shimer_2005$wage , 2), "}"), con = CON)
+writeLines(paste0("\\newcommand{\\wBaselineShimerAER}{", round(economy_baseline_shimer_2005$wage, 3), "}"), con = CON)
 writeLines(paste0("\\newcommand{\\flowGain}{", round(100 * (economy_baseline$wage / z - 1), 0), "}"), con = CON)
+writeLines(paste0("\\newcommand{\\flowGainShimerAER}{", round(100 * (economy_baseline_shimer_2005$wage / z_shimer2005 - 1), 0), "}"), con = CON)
 
 close(CON)
