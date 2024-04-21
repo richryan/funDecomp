@@ -705,7 +705,7 @@ kableExtra::kable(dat_tbl_output_shimer2005, format = "latex", booktabs = TRUE, 
                   caption = "\\label{tab:model-results-shimer2005} Model results at different combinations of job-creation costs.",
                   escape = FALSE,
                   table.envir = "table") %>% 
-  kableExtra::footnote(general  = ,
+  kableExtra::footnote(general  = my_general_footnote,
                        general_title = "Notes: ",
                        footnote_as_chunk = TRUE,
                        title_format = c("italic"),
@@ -865,7 +865,7 @@ CON <- file(file_latex, "a")
 
 writeLines(paste0("\\newcommand{\\y}{", y, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\z}{", z, "}"), con = CON)
-writeLines(paste0("\\newcommand{\\zShimer2005}{", z_shimer2005, "}"), con = CON)
+writeLines(paste0("\\newcommand{\\zShimerAER}{", z_shimer2005, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\pphi}{", pphi, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\rmonthly}{", r_monthly, "}"), con = CON)
 writeLines(paste0("\\newcommand{\\smonthly}{", s_monthly, "}"), con = CON)
