@@ -464,9 +464,15 @@ ppsi <- 0.5
 ch_ppsi <- (1 - ppsi) * cH 
 cl_ppsi <- ppsi * cH
 
+# Only cl
+ct_onlycl <- 0.0
+ch_onlycl <- 0.0
+cl_onlycl <- cl_ppsi
+
 dat_tab <- tribble(
   ~economy,    ~case,       ~ch,         ~cl,         
   "Baseline",   "baseline",  ch_baseline, cl_baseline,
+  "Only $\\ell$", "onlycl",   ch_onlycl,   cl_onlycl,
   "Middle $h$", "middle_h",  ch_hhi2,     cl_hhi2,
   "High $h$",   "high_h",    ch_hhi,      cl_hhi,   
   "Split",      "split",     ch_ppsi,     cl_ppsi    
@@ -609,12 +615,18 @@ ppsi <- 0.5
 ch_ppsi_shimer2005 <- (1 - ppsi) * cH_shimer2005
 cl_ppsi_shimer2005 <- ppsi * cH_shimer2005
 
+# Only cl
+ct_onlycl_shimer2005 <- 0.0
+ch_onlycl_shimer2005 <- 0.0
+cl_onlycl_shimer2005 <- cl_ppsi
+
 dat_tab_shimer2005 <- tribble(
-  ~economy,    ~case,       ~ch,                     ~cl,         
-  "Baseline",   "baseline",  ch_baseline_shimer2005, cl_baseline_shimer2005,
-  "Middle $h$", "middle_h",  ch_hhi2_shimer2005,     cl_hhi2_shimer2005,
-  "High $h$",   "high_h",    ch_hhi_shimer2005,      cl_hhi_shimer2005,   
-  "Split",      "split",     ch_ppsi_shimer2005,     cl_ppsi_shimer2005    
+  ~economy,      ~case,       ~ch,                     ~cl,         
+  "Baseline",     "baseline",  ch_baseline_shimer2005, cl_baseline_shimer2005,
+  "Only $\\ell$", "onlycl",    ch_onlycl_shimer2005,   cl_onlycl_shimer2005,    
+  "Middle $h$",   "middle_h",  ch_hhi2_shimer2005,     cl_hhi2_shimer2005,
+  "High $h$",     "high_h",    ch_hhi_shimer2005,      cl_hhi_shimer2005,   
+  "Split",        "split",     ch_ppsi_shimer2005,     cl_ppsi_shimer2005    
 )
 
 # Compute c
@@ -750,6 +762,7 @@ dat_long_label <- dat_long %>%
   mutate(my_label = case_when(
     case == "baseline" & id == 10 ~ economy,
     case == "middle_h" & id == 25 ~ "plain(Middle)~italic('h')",
+    case == "onlycl"   & id == 95 ~ "plain(Only)~\u2113",
     case == "high_h" & id == 10 ~ "plain(High)~italic('h')",
     case == "split" & id == 75 ~ economy,
     TRUE ~ ""
@@ -887,5 +900,6 @@ writeLines(paste0("\\newcommand{\\replacementRatioBaselineShimerAER}{", round(z_
 writeLines(paste0("\\newcommand{\\wBaselineShimerAER}{", round(economy_baseline_shimer_2005$wage, 3), "}"), con = CON)
 writeLines(paste0("\\newcommand{\\flowGain}{", round(100 * (economy_baseline$wage / z - 1), 0), "}"), con = CON)
 writeLines(paste0("\\newcommand{\\flowGainShimerAER}{", round(100 * (economy_baseline_shimer_2005$wage / z_shimer2005 - 1), 0), "}"), con = CON)
+
 
 close(CON)
