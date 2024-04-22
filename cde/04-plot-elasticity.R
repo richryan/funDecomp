@@ -834,7 +834,7 @@ dat_eqm <- tibble(
            TRUE ~ ""
            ),
          mylabel_wage_curve = case_when(
-           id == 8000 ~ "Job creation by workers",
+           id == 8000 ~ "Workers' wage curve",
            TRUE ~ ""
          ),
          mylabel_wage_hi_cl = case_when(
