@@ -618,7 +618,7 @@ cl_ppsi_shimer2005 <- ppsi * cH_shimer2005
 # Only cl
 ct_onlycl_shimer2005 <- 0.0
 ch_onlycl_shimer2005 <- 0.0
-cl_onlycl_shimer2005 <- cl_ppsi
+cl_onlycl_shimer2005 <- cl_ppsi_shimer2005
 
 dat_tab_shimer2005 <- tribble(
   ~economy,      ~case,       ~ch,                     ~cl,         
