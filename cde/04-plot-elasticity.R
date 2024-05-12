@@ -470,12 +470,12 @@ ch_onlycl <- 0.0
 cl_onlycl <- cl_ppsi
 
 dat_tab <- tribble(
-  ~economy,    ~case,       ~ch,         ~cl,         
-  "Baseline",   "baseline",  ch_baseline, cl_baseline,
-  "Only $\\ell$", "onlycl",   ch_onlycl,   cl_onlycl,
-  "Middle $h$", "middle_h",  ch_hhi2,     cl_hhi2,
-  "High $h$",   "high_h",    ch_hhi,      cl_hhi,   
-  "Split",      "split",     ch_ppsi,     cl_ppsi    
+  ~economy,        ~case,       ~ch,         ~cl,         
+  "Baseline",       "baseline",  ch_baseline, cl_baseline,
+  "Middle $\\ell$", "onlycl",    ch_onlycl,   cl_onlycl,
+  "Split",          "split",     ch_ppsi,     cl_ppsi,      
+  "Middle $h$",     "middle_h",  ch_hhi2,     cl_hhi2,
+  "High $h$",       "high_h",    ch_hhi,      cl_hhi     
 )
 
 # Compute c
@@ -621,12 +621,12 @@ ch_onlycl_shimer2005 <- 0.0
 cl_onlycl_shimer2005 <- cl_ppsi_shimer2005
 
 dat_tab_shimer2005 <- tribble(
-  ~economy,      ~case,       ~ch,                     ~cl,         
-  "Baseline",     "baseline",  ch_baseline_shimer2005, cl_baseline_shimer2005,
-  "Only $\\ell$", "onlycl",    ch_onlycl_shimer2005,   cl_onlycl_shimer2005,    
-  "Middle $h$",   "middle_h",  ch_hhi2_shimer2005,     cl_hhi2_shimer2005,
-  "High $h$",     "high_h",    ch_hhi_shimer2005,      cl_hhi_shimer2005,   
-  "Split",        "split",     ch_ppsi_shimer2005,     cl_ppsi_shimer2005    
+  ~economy,       ~case,       ~ch,                     ~cl,         
+  "Baseline",       "baseline",  ch_baseline_shimer2005, cl_baseline_shimer2005,
+  "Middle $\\ell$", "onlycl",    ch_onlycl_shimer2005,   cl_onlycl_shimer2005,    
+  "Split",          "split",     ch_ppsi_shimer2005,     cl_ppsi_shimer2005, 
+  "Middle $h$",     "middle_h",  ch_hhi2_shimer2005,     cl_hhi2_shimer2005,  
+  "High $h$",       "high_h",    ch_hhi_shimer2005,      cl_hhi_shimer2005    
 )
 
 # Compute c
@@ -762,7 +762,7 @@ dat_long_label <- dat_long %>%
   mutate(my_label = case_when(
     case == "baseline" & id == 10 ~ economy,
     case == "middle_h" & id == 25 ~ "plain(Middle)~italic('h')",
-    case == "onlycl"   & id == 95 ~ "plain(Only)~\u2113",
+    case == "onlycl"   & id == 95 ~ "plain(Middle)~\u2113",
     case == "high_h" & id == 10 ~ "plain(High)~italic('h')",
     case == "split" & id == 75 ~ economy,
     TRUE ~ ""
@@ -901,5 +901,20 @@ writeLines(paste0("\\newcommand{\\wBaselineShimerAER}{", round(economy_baseline_
 writeLines(paste0("\\newcommand{\\flowGain}{", round(100 * (economy_baseline$wage / z - 1), 0), "}"), con = CON)
 writeLines(paste0("\\newcommand{\\flowGainShimerAER}{", round(100 * (economy_baseline_shimer_2005$wage / z_shimer2005 - 1), 0), "}"), con = CON)
 
+# Write Table 1 elasticities
+write_LaTeX <- function(command, value) {
+  writeLines(paste0("\\providecommand{\\", command, "}{", value, "}"), con = CON)
+}
+
+dat_tab <- dat_tab |> 
+  mutate(macro_name_eta = paste0("ETA", str_replace(case, "_", "")),
+         macro_name_ch = paste0("ch", str_replace(case, "_", "")),
+         macro_name_cl = paste0("cl", str_replace(case, "_", "")))
+# Elasticity of tightness with respect to productivity
+pwalk(list(command = dat_tab$macro_name_eta, value = round(dat_tab$elasticity, 3)), write_LaTeX)
+# ch
+pwalk(list(command = dat_tab$macro_name_ch, value = round(dat_tab$ch, 3)), write_LaTeX)
+# cl
+pwalk(list(command = dat_tab$macro_name_cl, value = round(dat_tab$cl, 3)), write_LaTeX)
 
 close(CON)
