@@ -139,7 +139,10 @@ are prefixed with the order in which they need to be run.
   Sargent’s
   (2017)](https://www.aeaweb.org/articles?id=10.1257/aer.20150233)
   fundamental decomposition of the elasticity of market tightness with
-  respect to productivity, $\eta_{\theta,y}$.
+  respect to productivity, $\eta_{\theta,y}$. The code also generates
+  the tables in the text.
+- `05-plot-replacement-rates.R`: Plots two measures of how
+  unemployment-insurance benefits replace claimants’ labor income.
 
 ## Note about Viewing a Function’s Documentation
 
