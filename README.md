@@ -7,25 +7,43 @@ Code for the paper *Unemployment Volatility: When Workers Pay Costs upon
 Accepting Jobs*. The paper is included in the top of the directory in
 `unemployment_volatility_when_workers_pay_costs.pdf`.
 
-Here’s the abstract:
+Here’s the 100-word abstract:
 
-> When a firm hires a worker, adding the new hire to payroll is costly.
-> These costs reduce the amount of resources that can go to recruiting
-> workers and affects amplify how unemployment responds to changes in
-> productivity. Workers also incur up-front costs upon accepting jobs.
-> Examples include moving expenses and regulatory fees. I establish that
-> workers’ costs lessen the response of unemployment to productivity
-> changes and do not subtract from resources available for recruitment.
-> The influence of workers’ costs is bounded by properties of a matching
-> function, which describes how job openings and unemployment produce
-> hires. Using data on job finding that are adjusted for workers’
-> transitions between employment and unemployment and for how the Job
-> Openings and Labor Turnover Survey records hires, I estimate a bound
-> that ascribes limited influence to workers’ costs. The results
-> demonstrate that costs paid by workers upon accepting jobs affect
-> outcomes in the labor market (firms threaten workers with paying the
-> up-front costs again if wage negotiations fail), but their influence
-> on volatility is less important than firms’ costs.
+> Hiring workers is costly. Firms’ costs reduce resources that can go to
+> recruitment and amplify how unemployment responds to changes in
+> productivity. Workers also incur up-front costs. Examples include
+> moving expenses and regulatory fees. Workers’ costs lessen
+> unemployment volatility and leave resources available for recruitment
+> unchanged. Their influence is bounded by properties of a matching
+> function. Using adjusted data on job finding, I estimate a bound that
+> ascribes limited influence. The results demonstrate that workers’
+> costs affect outcomes (firms threaten workers with paying the fixed
+> costs again if negotiations fail), but their influence on volatility
+> is less than firms’ costs.
+
+<!-- > When a firm hires a worker, -->
+<!-- >   adding the new hire to payroll is costly. -->
+<!-- >   These costs -->
+<!-- >   reduce the amount of resources that can go to recruiting workers -->
+<!-- >   and affects -->
+<!-- >   amplify how unemployment responds to changes in productivity. -->
+<!-- >   Workers also incur up-front costs upon accepting jobs. -->
+<!-- >   Examples include moving expenses and regulatory fees. -->
+<!-- >   I establish that workers' costs -->
+<!-- >   lessen the response of unemployment to productivity changes and -->
+<!-- >   do not subtract from resources available for recruitment. -->
+<!-- >   The influence of workers' costs is bounded by properties of a matching function, -->
+<!-- >   which describes how -->
+<!-- >   job openings and unemployment produce hires. -->
+<!-- >   Using data on job finding that are adjusted -->
+<!-- >   for workers' transitions between employment and unemployment and  -->
+<!-- >   for how the Job Openings and Labor Turnover Survey records hires, -->
+<!-- >   I estimate a bound that ascribes limited influence to workers' costs.  -->
+<!-- >   The results demonstrate that costs paid by workers upon accepting jobs -->
+<!-- >   affect outcomes in the labor market -->
+<!-- >   (firms threaten workers with paying the up-front costs again if wage -->
+<!-- >   negotiations fail), -->
+<!-- >   but their influence on volatility is less important than firms' costs. -->
 
 ## Accessing adjusted data on job-finding and job-separation rates
 
@@ -122,6 +140,15 @@ are prefixed with the order in which they need to be run.
   (2017)](https://www.aeaweb.org/articles?id=10.1257/aer.20150233)
   fundamental decomposition of the elasticity of market tightness with
   respect to productivity, $\eta_{\theta,y}$.
+
+## Note about Viewing a Function’s Documentation
+
+After running an script, it is possible to view a function’s
+documentation using `?my_function`. For example,
+`docstring::docstring(compute_c)` returns the documentation of the
+function `compute_c`.
+
+This feature is accomplished with R’s docstring package.
 
 ## Citation
 
