@@ -156,5 +156,5 @@ This feature is accomplished with R’s docstring package.
 ## Citation
 
 Ryan, Rich. (2024) Unemployment volatility: When Workers Pay Costs upon
-Accepting Jobs. *International Journal of Economic Theory*, 1–31.
+Accepting Jobs. *International Journal of Economic Theory*, 20, 303–333.
 <https://doi.org/10.1111/ijet.12405>
